@@ -8,6 +8,8 @@ use Try::Tiny;
 use lib qw(t/lib);
 use DBICTest;
 
+$ENV{DBIC_SYBASE_FREETDS_NOWARN} = 1;
+
 DBICTest::Schema->load_classes('EventSmallDT');
 
 my ($dsn, $user, $pass) = @ENV{map { "DBICTEST_SYBASE_${_}" } qw/DSN USER PASS/};

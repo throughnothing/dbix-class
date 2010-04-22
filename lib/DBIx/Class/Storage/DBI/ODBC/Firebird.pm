@@ -7,6 +7,11 @@ use mro 'c3';
 use Try::Tiny;
 use namespace::clean;
 
+__PACKAGE__->datetimea_parse_via({
+  datetime => '%Y-%m-%d %H:%M:%S.%4N',
+  date     => '%Y-%m-%d',
+});
+
 =head1 NAME
 
 DBIx::Class::Storage::DBI::ODBC::Firebird - Driver for using the Firebird RDBMS
@@ -28,8 +33,6 @@ makes it more suitable for long running processes such as under L<Catalyst>.
 
 =cut
 
-__PACKAGE__->datetime_parser_type ('DBIx::Class::Storage::DBI::ODBC::Firebird::DateTime::Format');
-
 # releasing savepoints doesn't work for some reason, but that shouldn't matter
 sub _exec_svp_release { 1 }
 
@@ -45,35 +48,6 @@ sub _exec_svp_rollback {
       $self->throw_exception($_);
     }
   };
-}
-
-package # hide from PAUSE
-  DBIx::Class::Storage::DBI::ODBC::Firebird::DateTime::Format;
-
-# inherit parse/format date
-our @ISA = 'DBIx::Class::Storage::DBI::InterBase::DateTime::Format';
-
-my $timestamp_format = '%Y-%m-%d %H:%M:%S.%4N'; # %F %T
-my $timestamp_parser;
-
-sub parse_datetime {
-  shift;
-  require DateTime::Format::Strptime;
-  $timestamp_parser ||= DateTime::Format::Strptime->new(
-    pattern  => $timestamp_format,
-    on_error => 'croak',
-  );
-  return $timestamp_parser->parse_datetime(shift);
-}
-
-sub format_datetime {
-  shift;
-  require DateTime::Format::Strptime;
-  $timestamp_parser ||= DateTime::Format::Strptime->new(
-    pattern  => $timestamp_format,
-    on_error => 'croak',
-  );
-  return $timestamp_parser->format_datetime(shift);
 }
 
 1;

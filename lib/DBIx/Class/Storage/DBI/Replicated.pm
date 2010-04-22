@@ -256,6 +256,9 @@ my $method_dispatch = {
     deployment_statements
     datetime_parser
     datetime_parser_type
+    datetime_parser_class
+    datetime_strptime_formats
+    datetime_parse_via
     build_datetime_parser
     last_insert_id
     insert
@@ -1128,8 +1131,8 @@ using the Schema clone method.
 
 Based on code originated by:
 
-  Norbert Csongrádi <bert@cpan.org>
-  Peter Siklósi <einon@einon.hu>
+  Norbert Csongr?di <bert@cpan.org>
+  Peter Sikl?si <einon@einon.hu>
 
 =head1 LICENSE
 

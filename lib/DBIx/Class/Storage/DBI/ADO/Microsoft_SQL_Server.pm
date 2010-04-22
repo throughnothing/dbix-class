@@ -9,6 +9,10 @@ use base qw/
 /;
 use mro 'c3';
 
+__PACKAGE__->datetime_parse_via({
+  datetime => '%m/%d/%Y %I:%M:%S %p',
+});
+
 =head1 NAME
 
 DBIx::Class::Storage::DBI::ADO::Microsoft_SQL_Server - Support for Microsoft
@@ -56,10 +60,6 @@ Fractional seconds with L<DBIx::Class::InflateColumn::DateTime> are not
 currently supported, datetimes are truncated at the second.
 
 =cut
-
-__PACKAGE__->datetime_parser_type (
-  'DBIx::Class::Storage::DBI::ADO::Microsoft_SQL_Server::DateTime::Format'
-);
 
 sub _rebless {
   my $self = shift;
@@ -143,32 +143,6 @@ sub _mssql_max_data_type_representation_size_in_bytes {
     blob => $blob_max,
     clob => $blob_max,
   }
-}
-
-package # hide from PAUSE
-  DBIx::Class::Storage::DBI::ADO::Microsoft_SQL_Server::DateTime::Format;
-
-my $datetime_format = '%m/%d/%Y %I:%M:%S %p';
-my $datetime_parser;
-
-sub parse_datetime {
-  shift;
-  require DateTime::Format::Strptime;
-  $datetime_parser ||= DateTime::Format::Strptime->new(
-    pattern  => $datetime_format,
-    on_error => 'croak',
-  );
-  return $datetime_parser->parse_datetime(shift);
-}
-
-sub format_datetime {
-  shift;
-  require DateTime::Format::Strptime;
-  $datetime_parser ||= DateTime::Format::Strptime->new(
-    pattern  => $datetime_format,
-    on_error => 'croak',
-  );
-  return $datetime_parser->format_datetime(shift);
 }
 
 1;
