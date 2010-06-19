@@ -1,20 +1,41 @@
 #!/usr/bin/perl
 
+use warnings;
+use strict;
+
+use Getopt::Long qw/:config gnu_getopt bundling_override no_ignore_case/;
+use FindBin;
+
+use lib "$FindBin::Bin/../t/lib";
+
+my %args;
+BEGIN {
+  GetOptions (\%args, 'lib|l');
+  lib->import ( "$FindBin::Bin/../lib" )
+    if $args{lib};
+}
+
+use Benchmark qw/timethis cmpthese/;
+use DBICTest;
+
+BEGIN {
+  package DBICTest::Bench::HRI;
+  our $VERSION = 'blah';  # satisfy load_optional_class
+  1;
+}
+use DBIx::Class::ResultClass::HashRefInflator;
+
+
 #
 # So you wrote a new mk_hash implementation which passed all tests (particularly 
 # t/68inflate_resultclass_hashrefinflator) and would like to see how it holds up 
 # against older versions of the same. Just add your coderef to the HRI::Bench 
 # namespace and add a name/ref pair to the %bench_list hash. Happy testing.
 
-package DBIx::Class::ResultClass::HashRefInflator::Bench;
-
-use warnings;
-use strict;
-
-my $current_mk_hash;
-$current_mk_hash = sub {
+my $mk_hash_4761;
+$mk_hash_4761 = sub {
     if (ref $_[0] eq 'ARRAY') {     # multi relationship 
-        return [ map { $current_mk_hash->(@$_) || () } (@_) ];
+        return [ map { $mk_hash_4761->(@$_) || () } (@_) ];
     }
     else {
         my $hash = {
@@ -23,7 +44,7 @@ $current_mk_hash = sub {
 
             # the second arg is a hash of arrays for each prefetched relation 
             map
-                { $_ => $current_mk_hash->( @{$_[1]->{$_}} ) }
+                { $_ => $mk_hash_4761->( @{$_[1]->{$_}} ) }
                 ( $_[1] ? (keys %{$_[1]}) : () )
         };
 
@@ -38,8 +59,8 @@ $current_mk_hash = sub {
 };
 
 # the (incomplete, fails a test) implementation before svn:4760
-my $old_mk_hash;
-$old_mk_hash = sub {
+my $mk_hash_old;
+$mk_hash_old = sub {
     my ($me, $rest) = @_;
 
     # $me is the hashref of cols/data from the immediate resultsource
@@ -63,56 +84,45 @@ $old_mk_hash = sub {
         map {
           ( $_ =>
              ref($rest->{$_}[0]) eq 'ARRAY'
-                 ? [ grep defined, map $old_mk_hash->(@$_), @{$rest->{$_}} ]
-                 : $old_mk_hash->( @{$rest->{$_}} )
+                 ? [ grep defined, map $mk_hash_old->(@$_), @{$rest->{$_}} ]
+                 : $mk_hash_old->( @{$rest->{$_}} )
           )
         } keys %$rest
     };
 };
 
 
-our %bench_list = (
-    current_implementation => $current_mk_hash,
-    old_implementation => $old_mk_hash,
+my %bench_list = (
+    rev4761 => $mk_hash_4761,
+    old_implementation => $mk_hash_old,
 );
 
-1;
-
-package benchmark_hashrefinflator;
-
-use warnings;
-use strict;
-
-use FindBin;
-use lib ("$FindBin::Bin/../lib", "$FindBin::Bin/../t/lib");
-
-use Benchmark qw/timethis cmpthese/;
-use DBICTest;
-
-chdir ("$FindBin::Bin/..");
 my $schema = DBICTest->init_schema();
 
 my $test_sub = sub {
     my $rs_hashrefinf = $schema->resultset ('Artist')->search ({}, {
         prefetch => { cds => 'tracks' },
     });
-    $rs_hashrefinf->result_class('DBIx::Class::ResultClass::HashRefInflator::Bench');
+    $rs_hashrefinf->result_class('DBICTest::Bench::HRI');
     my @stuff = $rs_hashrefinf->all;
 };
 
 
 my $results;
-for my $b (keys %DBIx::Class::ResultClass::HashRefInflator::Bench::bench_list) {
+for my $b ('__CURRENT__', keys %bench_list) {
 
     print "Timing $b... ";
 
     # switch the inflator
     no warnings qw/redefine once/;
     no strict qw/refs/;
-    local *DBIx::Class::ResultClass::HashRefInflator::Bench::inflate_result = sub {
-        return $DBIx::Class::ResultClass::HashRefInflator::Bench::bench_list{$b}->(@_[2,3]);
-    };
+    my $cref = $bench_list{$b};
+    local *DBICTest::Bench::HRI::inflate_result = $cref
+      ? sub { $cref->(@_[2,3]) }
+      : sub { DBIx::Class::ResultClass::HashRefInflator->inflate_result (@_[2,3]) }
+    ;
 
     $results->{$b} = timethis (-2, $test_sub);
 }
+print "\n";
 cmpthese ($results);
