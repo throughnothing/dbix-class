@@ -3,9 +3,69 @@ package # hide from PAUSE
 
 use strict;
 use warnings;
+
+# another epic hack - install a debugger to test $_ leak across
+# subroutine invocation boundaries (an external piece of code *MAY* eat $_)
+BEGIN {
+  if ($ENV{DBICTEST_DEBUG_ARG_STABILITY}) {
+    eval { require Enbugger }
+      or do {
+        warn "You need Enbugger installed to use this debug mode\n";
+        exit 1;
+      };
+
+    package Enbugger::DBICTest;
+    use warnings;
+    use strict;
+    use base qw/Enbugger/;
+
+    $INC{'Enbugger/DBICTest.pm'} = 'make require happy';
+    sub _load_debugger {
+      no warnings qw/redefine/;
+
+      *DB::sub = sub {
+        no strict qw/refs/;
+
+        my $want = wantarray();
+        my @res;
+        if (! defined $want) {
+          $DB::sub->(@_);
+          1;
+        }
+        elsif ($want) {
+          @res = $DB::sub->(@_);
+        }
+        else {
+          $res[0] = $DB::sub->(@_);
+        }
+
+        my $caller = caller() || '';
+        # it would be a good idea to make SQLA and eventually SQLT safe, but one step at a time
+        # if ( $caller =~ /^ (?: DBIC | DBIx::Class | SQL::Translator | SQL::Abstract ) /x ) {
+        if ( $caller =~ /^ (?: DBIC | DBIx::Class ) /x ) {
+          local $@;
+          eval { undef $_; 1; }
+            #or warn "Unable to modify \$_: $@$lm"
+          ;
+        }
+
+        return $want ? @res : $res[0];
+      };
+
+      shift->init_debugger;
+    }
+
+    __PACKAGE__->register_debugger ('DBICTest');
+
+    Enbugger->load_debugger ('DBICTest');
+  }
+}
+
+
 use DBICTest::AuthorCheck;
 use DBICTest::Schema;
 use Carp;
+
 
 =head1 NAME
 

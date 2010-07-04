@@ -32,8 +32,8 @@ sub many_to_many {
     my $set_meth = "set_${meth}";
     my $rs_meth = "${meth}_rs";
 
-    for ($add_meth, $remove_meth, $set_meth, $rs_meth) {
-      if ( $class->can ($_) ) {
+    for my $meth ($add_meth, $remove_meth, $set_meth, $rs_meth) {
+      if ( $class->can ($meth) ) {
         carp (<<"EOW") unless $ENV{DBIC_OVERWRITE_HELPER_METHODS_OK};
 
 ***************************************************************************
