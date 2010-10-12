@@ -11,13 +11,8 @@ use DBICTest;
 require DBIx::Class;
 
 my @json_backends = qw/XS JSON DWIW/;
-my $tests_per_run = 5;
-plan tests => ($tests_per_run * @json_backends) + 1;
-
-
-# test the script is setting @INC properly
-test_exec (qw| -It/lib/testinclude --schema=DBICTestAdminInc --op=insert --connect=[] |);
-cmp_ok ( $? >> 8, '==', 70, 'Correct exit code from connecting a custom INC schema' );
+my $tests_per_run = 4;
+plan tests => ($tests_per_run * @json_backends);
 
 for my $js (@json_backends) {
 
@@ -47,17 +42,6 @@ sub test_dbicadmin {
     ok( ($employee->name() eq 'Trout'), "$ENV{JSON_ANY_ORDER}: update" );
 
     test_exec( default_args(), qw|--op=insert --set={"name":"Aran"}| );
-
-    SKIP: {
-        skip ("MSWin32 doesn't support -| either", 1) if $^O eq 'MSWin32';
-
-        open(my $fh, "-|",  ( $^X, 'script/dbicadmin_pre_moose', default_args(), qw|--op=select --attrs={"order_by":"name"}| ) ) or die $!;
-        my $data = do { local $/; <$fh> };
-        close($fh);
-        if (!ok( ($data=~/Aran.*Trout/s), "$ENV{JSON_ANY_ORDER}: select with attrs" )) {
-          diag ("data from select is $data")
-        };
-    }
 
     test_exec( default_args(), qw|--op=delete --where={"name":"Trout"}| );
     ok( ($employees->count()==1), "$ENV{JSON_ANY_ORDER}: delete" );
