@@ -78,5 +78,11 @@ sub test_exec {
     }
   }
 
-  system ($perl, @args);
+  {
+    local @ARGV;
+    local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ qr/^Subroutine .+ redefined/ };
+    my $fn;
+    ($fn, @ARGV) = @args;
+    do $fn;
+  }
 }
