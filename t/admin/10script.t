@@ -16,7 +16,7 @@ BEGIN {
 }
 
 my @json_backends = qw/XS JSON DWIW/;
-my $tests_per_run = 4;
+my $tests_per_run = 5;
 plan tests => ($tests_per_run * @json_backends);
 
 for my $js (@json_backends) {
@@ -48,6 +48,17 @@ sub test_dbicadmin {
 
     test_exec( default_args(), qw|--op=insert --set={"name":"Aran"}| );
 
+    SKIP: {
+        skip ("MSWin32 doesn't support -| either", 1) if $^O eq 'MSWin32';
+
+        open(my $fh, "-|",  ( $^X, 'script/dbicadmin', default_args(), qw|--op=select --attrs={"order_by":"name"}| ) ) or die $!;
+        my $data = do { local $/; <$fh> };
+        close($fh);
+        if (!ok( ($data=~/Aran.*Trout/s), "$ENV{JSON_ANY_ORDER}: select with attrs" )) {
+          diag ("data from select is $data")
+        };
+    }
+
     test_exec( default_args(), qw|--op=delete --where={"name":"Trout"}| );
     ok( ($employees->count()==1), "$ENV{JSON_ANY_ORDER}: delete" );
 }
@@ -78,11 +89,6 @@ sub test_exec {
     }
   }
 
-  {
-    local @ARGV;
-    local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ qr/^Subroutine .+ redefined/ };
-    my $fn;
-    ($fn, @ARGV) = @args;
-    do $fn;
-  }
+  system ($perl, @args);
+
 }
