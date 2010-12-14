@@ -3,6 +3,7 @@ Revision history for DBIx::Class
     * New Features / Changes
         - Add DBIx::Class::Storage::Debug::PrettyPrint to this dist so
           docs can be viewed on CPAN etc
+        - Add 'plain' ::PrettyPrint profile for stupid terminals
 
 0.08195 2011-07-27 16:20 (UTC)
     * Fixes
