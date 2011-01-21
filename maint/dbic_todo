@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+# get options here, make $args available to all snippets
+require Getopt::Long;
+my $getopt = Getopt::Long::Parser->new(
+  config => [qw/gnu_getopt bundling_override no_ignore_case pass_through/]
+);
+my $args = {
+  check_blockers => undef,
+};
+$getopt->getoptions($args, qw/
+  check_blockers|check-blockers
+/);
+if (@ARGV) {
+  warn "\nIgnoring unrecognized option(s): @ARGV\n\n";
+}
+
+use Data::Dumper;
+die Dumper $args;
+
+exit 1;
