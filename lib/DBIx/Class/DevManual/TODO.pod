@@ -1,0 +1,5 @@
+package DBIx::Class::DevManual::TODO;
+
+=head1 NAME
+
+DBIx::Class::DevManual::TODO - TODO list of XS through XXL tasks for eager young minds
