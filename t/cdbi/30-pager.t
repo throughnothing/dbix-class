@@ -5,10 +5,8 @@ BEGIN {
   eval "use DBIx::Class::CDBICompat;";
   if ($@) {
     plan (skip_all => 'Class::Trigger and DBIx::ContextualFetch required');
-    next;
   }
-  eval "use DBD::SQLite";
-  plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 6);
+  plan tests => 6;
 }
 
 use lib 't/cdbi/testlib';
@@ -41,7 +39,7 @@ $it->next;
 is( $it->next, undef, "next past end of page ok" );
 
 # second page
-( $pager, $it ) = Film->page( 
+( $pager, $it ) = Film->page(
     {},
     { rows => 3,
       page => 2 }

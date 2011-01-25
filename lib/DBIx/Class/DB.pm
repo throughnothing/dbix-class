@@ -8,7 +8,8 @@ use DBIx::Class::Schema;
 use DBIx::Class::Storage::DBI;
 use DBIx::Class::ClassResolver::PassThrough;
 use DBI;
-use Scalar::Util;
+use Scalar::Util 'blessed';
+use namespace::clean;
 
 unless ($INC{"DBIx/Class/CDBICompat.pm"}) {
   warn "IMPORTANT: DBIx::Class::DB is DEPRECATED AND *WILL* BE REMOVED. DO NOT USE.\n";
@@ -16,13 +17,9 @@ unless ($INC{"DBIx/Class/CDBICompat.pm"}) {
 
 __PACKAGE__->load_components(qw/ResultSetProxy/);
 
-{
-    no warnings 'once';
-    *dbi_commit = \&txn_commit;
-    *dbi_rollback = \&txn_rollback;
-}
-
 sub storage { shift->schema_instance(@_)->storage; }
+sub dbi_commit { shift->txn_commit(@_) }
+sub dbi_rollback { shift->txn_rollback(@_) }
 
 =head1 NAME
 
@@ -183,12 +180,12 @@ sub result_source_instance {
   }
 
   my($source, $result_class) = @{$class->_result_source_instance};
-  return unless Scalar::Util::blessed($source);
+  return unless blessed $source;
 
   if ($result_class ne $class) {  # new class
     # Give this new class its own source and register it.
-    $source = $source->new({ 
-        %$source, 
+    $source = $source->new({
+        %$source,
         source_name  => $class,
         result_class => $class
     } );
@@ -202,19 +199,19 @@ sub result_source_instance {
 
 ****DEPRECATED****
 
-See L<class_resolver>
+See L</class_resolver>
 
 =head2 dbi_commit
 
 ****DEPRECATED****
 
-Alias for L<txn_commit>
+Alias for L</txn_commit>
 
 =head2 dbi_rollback
 
 ****DEPRECATED****
 
-Alias for L<txn_rollback>
+Alias for L</txn_rollback>
 
 =end HIDE_BECAUSE_THIS_CLASS_IS_DEPRECATED
 

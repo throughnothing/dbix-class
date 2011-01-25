@@ -1,12 +1,11 @@
 use strict;
 use Test::More;
-
+use Class::Inspector ();
 
 BEGIN {
   eval "use DBIx::Class::CDBICompat;";
   plan skip_all => 'Class::Trigger and DBIx::ContextualFetch required' if $@;
-  eval "use DBD::SQLite";
-  plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 3);
+  plan tests => 3;
 }
 
 

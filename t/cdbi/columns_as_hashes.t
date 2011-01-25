@@ -4,8 +4,7 @@ use Test::Warn;
 
 BEGIN {
   eval "use DBIx::Class::CDBICompat;";
-  plan $@ ? (skip_all => "Class::Trigger and DBIx::ContextualFetch required: $@")
-          : ('no_plan');
+  plan skip_all => "Class::Trigger and DBIx::ContextualFetch required: $@" if $@;
 }
 
 use lib 't/cdbi/testlib';
@@ -26,7 +25,7 @@ local $ENV{DBIC_CDBICOMPAT_HASH_WARN} = 0;
         my $rating = $waves->{rating};
         $waves->Rating("PG");
         is $rating, "R", 'evaluation of column value is not deferred';
-    } qr{^Column 'rating' of 'Film/$waves' was fetched as a hash at \Q$0};
+    } qr{^Column 'rating' of 'Film/$waves' was fetched as a hash at\b};
 
     warnings_like {
         is $waves->{title}, $waves->Title, "columns can be accessed as hashes";
@@ -53,15 +52,15 @@ warning_is {
 } '', 'DBIC_CDBICOMPAT_HASH_WARN controls warnings';
 
 
-{    
+{
     $waves->rating("R");
     $waves->update;
-    
+
     no warnings 'redefine';
     local *Film::rating = sub {
         return "wibble";
     };
-    
+
     is $waves->{rating}, "R";
 }
 
@@ -74,7 +73,7 @@ warning_is {
         return "movie" if lc $col eq "film";
         return $col;
     };
-    
+
     require Actor;
     Actor->has_a( film => "Film" );
 
@@ -82,7 +81,7 @@ warning_is {
         name    => 'Emily Watson',
         film    => $waves,
     });
-    
+
     ok !eval { $actor->film };
     is $actor->{film}->id, $waves->id,
        'hash access still works despite lack of accessor';
@@ -91,14 +90,19 @@ warning_is {
 
 # Emulate that Class::DBI inflates immediately
 SKIP: {
-    skip "Need MySQL to run this test", 3 unless eval { require MyFoo };
-    
+    unless (eval { require MyFoo }) {
+      my ($err) = $@ =~ /([^\n]+)/;
+      skip $err, 3
+    }
+
     my $foo = MyFoo->insert({
         name    => 'Whatever',
         tdate   => '1949-02-01',
     });
     isa_ok $foo, 'MyFoo';
-    
+
     isa_ok $foo->{tdate}, 'Date::Simple';
     is $foo->{tdate}->year, 1949;
 }
+
+done_testing;

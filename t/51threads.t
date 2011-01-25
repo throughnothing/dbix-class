@@ -1,36 +1,37 @@
 use strict;
 use warnings;
+
 use Test::More;
+
 use Config;
-
-# README: If you set the env var to a number greater than 10,
-#   we will use that many children
-
 BEGIN {
     plan skip_all => 'Your perl does not support ithreads'
         if !$Config{useithreads};
 }
 
+BEGIN {
+    plan skip_all => 'Minimum of perl 5.8.5 required for thread tests (DBD::Pg mandated)'
+        if $] < '5.008005';
+}
+
 use threads;
+use Test::Exception;
+use DBIx::Class::Optional::Dependencies ();
+use lib qw(t/lib);
+
+plan skip_all => 'Test needs ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_pg')
+  unless DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_pg');
 
 my ($dsn, $user, $pass) = @ENV{map { "DBICTEST_PG_${_}" } qw/DSN USER PASS/};
-my $num_children = $ENV{DBICTEST_THREAD_STRESS};
-
-plan skip_all => 'Set $ENV{DBICTEST_THREAD_STRESS} to run this test'
-    unless $num_children;
-
 plan skip_all => 'Set $ENV{DBICTEST_PG_DSN}, _USER and _PASS to run this test'
       . ' (note: creates and drops a table named artist!)' unless ($dsn && $user);
 
-diag 'It is normal to see a series of "Scalars leaked: ..." messages during this test';
-
+# README: If you set the env var to a number greater than 10,
+#   we will use that many children
+my $num_children = $ENV{DBICTEST_THREAD_STRESS} || 1;
 if($num_children !~ /^[0-9]+$/ || $num_children < 10) {
    $num_children = 10;
 }
-
-plan tests => $num_children + 5;
-
-use lib qw(t/lib);
 
 use_ok('DBICTest::Schema');
 
@@ -38,7 +39,7 @@ my $schema = DBICTest::Schema->connection($dsn, $user, $pass, { AutoCommit => 1,
 
 my $parent_rs;
 
-eval {
+lives_ok (sub {
     my $dbh = $schema->storage->dbh;
 
     {
@@ -52,8 +53,7 @@ eval {
 
     $parent_rs = $schema->resultset('CD')->search({ year => 1901 });
     $parent_rs->next;
-};
-ok(!$@) or diag "Creation eval failed: $@";
+}, 'populate successfull');
 
 my @children;
 while(@children < $num_children) {
@@ -90,3 +90,5 @@ while(@children) {
 ok(1, "Made it to the end");
 
 $schema->storage->dbh->do("DROP TABLE cd");
+
+done_testing;

@@ -2,12 +2,9 @@ use strict;
 use Test::More;
 
 BEGIN {
-  eval "use DBIx::Class::CDBICompat;";
-  plan skip_all => "Class::Trigger and DBIx::ContextualFetch required: $@"
+  eval "use DBIx::Class::CDBICompat;use Time::Piece;";
+  plan skip_all => "Time::Piece, Class::Trigger and DBIx::ContextualFetch required: $@"
     if $@;
-
-  plan skip_all => "Time::Piece required for this test"
-    unless eval { require Time::Piece };
 
   plan tests => 12;
 }
@@ -18,8 +15,8 @@ package Temp::DBI;
 use base qw(DBIx::Class::CDBICompat);
 Temp::DBI->columns(All => qw(id date));
 
-my $strptime_inflate = sub { 
-    Time::Piece->strptime(shift, "%Y-%m-%d") 
+my $strptime_inflate = sub {
+    Time::Piece->strptime(shift, "%Y-%m-%d")
 };
 Temp::DBI->has_a(
     date => 'Time::Piece',

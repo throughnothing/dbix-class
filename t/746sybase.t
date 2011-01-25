@@ -1,23 +1,46 @@
 use strict;
-use warnings;  
+use warnings;
 no warnings 'uninitialized';
 
 use Test::More;
 use Test::Exception;
+use DBIx::Class::Optional::Dependencies ();
 use lib qw(t/lib);
 use DBICTest;
 
 my ($dsn, $user, $pass) = @ENV{map { "DBICTEST_SYBASE_${_}" } qw/DSN USER PASS/};
-
-my $TESTS = 66 + 2;
-
 if (not ($dsn && $user)) {
-  plan skip_all =>
-    'Set $ENV{DBICTEST_SYBASE_DSN}, _USER and _PASS to run this test' .
-    "\nWarning: This test drops and creates the tables " .
-    "'artist', 'money_test' and 'bindtype_test'";
-} else {
-  plan tests => $TESTS*2 + 1;
+  plan skip_all => join ' ',
+    'Set $ENV{DBICTEST_SYBASE_DSN}, _USER and _PASS to run this test.',
+    'Warning: This test drops and creates the tables:',
+    "'artist', 'money_test' and 'bindtype_test'",
+  ;
+};
+
+plan skip_all => 'Test needs ' . DBIx::Class::Optional::Dependencies->req_missing_for ('test_rdbms_ase')
+  unless DBIx::Class::Optional::Dependencies->req_ok_for ('test_rdbms_ase');
+
+# first run the test without the lang variable set
+# it is important to do this before module load, hence
+# the subprocess before the optdep check
+if ($ENV{LANG} and $ENV{LANG} ne 'C') {
+  my $oldlang = $ENV{LANG};
+  local $ENV{LANG} = 'C';
+
+  pass ("Your lang is set to $oldlang - testing with C first");
+
+  my @cmd = ($^X, __FILE__);
+
+  # this is cheating, and may even hang here and there (testing on windows passed fine)
+  # will be replaced with Test::SubExec::Noninteractive in due course
+  require IPC::Open2;
+  IPC::Open2::open2(my $out, my $in, @cmd);
+  while (my $ln = <$out>) {
+    print "   $ln";
+  }
+
+  wait;
+  ok (! $?, "Wstat $? from: @cmd");
 }
 
 my @storage_types = (
@@ -59,9 +82,8 @@ for my $storage_type (@storage_types) {
 
   if ($storage_idx == 0 &&
       $schema->storage->isa('DBIx::Class::Storage::DBI::Sybase::ASE::NoBindVars')) {
-# no placeholders in this version of Sybase or DBD::Sybase (or using FreeTDS)
-      my $tb = Test::More->builder;
-      $tb->skip('no placeholders') for 1..$TESTS;
+      # no placeholders in this version of Sybase or DBD::Sybase (or using FreeTDS)
+      skip "Skipping entire test for $storage_type - no placeholder support", 1;
       next;
   }
 
@@ -344,12 +366,13 @@ SQL
       eval { $dbh->do('DROP TABLE bindtype_test') };
 
       $dbh->do(qq[
-        CREATE TABLE bindtype_test 
+        CREATE TABLE bindtype_test
         (
-          id    INT   IDENTITY PRIMARY KEY,
-          bytea IMAGE NULL,
-          blob  IMAGE NULL,
-          clob  TEXT  NULL
+          id     INT   IDENTITY PRIMARY KEY,
+          bytea  IMAGE NULL,
+          blob   IMAGE NULL,
+          clob   TEXT  NULL,
+          a_memo IMAGE NULL
         )
       ],{ RaiseError => 1, PrintError => 0 });
     }
@@ -358,7 +381,7 @@ SQL
     $binstr{'large'} = $binstr{'small'} x 1024;
 
     my $maxloblen = length $binstr{'large'};
-    
+
     if (not $schema->storage->using_freetds) {
       $dbh->{'LongReadLen'} = $maxloblen * 2;
     } else {
@@ -438,12 +461,10 @@ SQL
     lives_ok {
       $rs->populate([
         {
-          bytea => 1,
           blob => $binstr{large},
           clob => $new_str,
         },
         {
-          bytea => 1,
           blob => $binstr{large},
           clob => $new_str,
         },
@@ -471,12 +492,14 @@ SQL
             bytea => 1,
             blob => $binstr{large},
             clob => $new_str,
+            a_memo => 2,
           },
           {
             id => 2,
             bytea => 1,
             blob => $binstr{large},
             clob => $new_str,
+            a_memo => 2,
           },
         ]);
       } 'insert_bulk with blobs and explicit identity does NOT die';
@@ -556,25 +579,24 @@ SQL
     $row = $rs->create({ amount => 100 });
   } 'inserted a money value';
 
-  is eval { $rs->find($row->id)->amount }, 100, 'money value round-trip';
+  cmp_ok eval { $rs->find($row->id)->amount }, '==', 100,
+    'money value round-trip';
 
   lives_ok {
     $row->update({ amount => 200 });
   } 'updated a money value';
 
-  is eval { $rs->find($row->id)->amount },
-    200, 'updated money value round-trip';
+  cmp_ok eval { $rs->find($row->id)->amount }, '==', 200,
+    'updated money value round-trip';
 
   lives_ok {
     $row->update({ amount => undef });
   } 'updated a money value to NULL';
 
-  my $null_amount = eval { $rs->find($row->id)->amount };
-  ok(
-    (($null_amount == undef) && (not $@)),
-    'updated money value to NULL round-trip'
-  );
-  diag $@ if $@;
+  lives_and {
+    my $null_amount = $rs->find($row->id)->amount;
+    is $null_amount, undef;
+  } 'updated money value to NULL round-trip';
 
 # Test computed columns and timestamps
   $schema->storage->dbh_do (sub {
@@ -585,7 +607,7 @@ CREATE TABLE computed_column_test (
    id INT IDENTITY PRIMARY KEY,
    a_computed_column AS getdate(),
    a_timestamp timestamp,
-   charfield VARCHAR(20) DEFAULT 'foo' 
+   charfield VARCHAR(20) DEFAULT 'foo'
 )
 SQL
   });
@@ -607,6 +629,8 @@ SQL
 }
 
 is $ping_count, 0, 'no pings';
+
+done_testing;
 
 # clean up our mess
 END {

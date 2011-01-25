@@ -4,10 +4,11 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class';
-
-use Carp::Clan qw/^DBIx::Class/;
+use DBIx::Class::Carp;
 use DBIx::Class::Exception;
-use List::Util;
+
+# not importing first() as it will clash with our own method
+use List::Util ();
 
 =head1 NAME
 
@@ -60,18 +61,18 @@ sub new {
   # analyze the order_by, and see if it is done over a function/nonexistentcolumn
   # if this is the case we will need to wrap a subquery since the result of RSC
   # *must* be a single column select
-  my %collist = map 
+  my %collist = map
     { $_ => 1, ($_ =~ /\./) ? () : ( "$alias.$_" => 1 ) }
     ($rs->result_source->columns, $column)
   ;
   if (
     scalar grep
-      { ! $collist{$_} }
-      ( $rs->result_source->schema->storage->_parse_order_by ($orig_attrs->{order_by} ) ) 
+      { ! $collist{$_->[0]} }
+      ( $rs->result_source->schema->storage->_extract_order_criteria ($orig_attrs->{order_by} ) )
   ) {
     # nuke the prefetch before collapsing to sql
     my $subq_rs = $rs->search;
-    $subq_rs->{attrs}{join} = $subq_rs->_merge_attr( $subq_rs->{attrs}{join}, delete $subq_rs->{attrs}{prefetch} );
+    $subq_rs->{attrs}{join} = $subq_rs->_merge_joinpref_attr( $subq_rs->{attrs}{join}, delete $subq_rs->{attrs}{prefetch} );
     $new_parent_rs = $subq_rs->as_subselect_rs;
   }
 
@@ -82,7 +83,7 @@ sub new {
   # rs via the _resolved_attrs trick - we need to retain the separation between
   # +select/+as and select/as. At the same time we want to preserve any joins that the
   # prefetch would otherwise generate.
-  $new_attrs->{join} = $rs->_merge_attr( $new_attrs->{join}, delete $new_attrs->{prefetch} );
+  $new_attrs->{join} = $rs->_merge_joinpref_attr( $new_attrs->{join}, delete $new_attrs->{prefetch} );
 
   # {collapse} would mean a has_many join was injected, which in turn means
   # we need to group *IF WE CAN* (only if the column in question is unique)
@@ -148,7 +149,7 @@ sub as_query { return shift->_resultset->as_query(@_) }
 Returns the next value of the column in the resultset (or C<undef> if
 there is none).
 
-Much like L<DBIx::Class::ResultSet/next> but just returning the 
+Much like L<DBIx::Class::ResultSet/next> but just returning the
 one value.
 
 =cut
@@ -440,7 +441,7 @@ sub func_rs {
 
 See L<DBIx::Class::Schema/throw_exception> for details.
 
-=cut 
+=cut
 
 sub throw_exception {
   my $self=shift;

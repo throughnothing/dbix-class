@@ -1,5 +1,5 @@
 use strict;
-use warnings;  
+use warnings;
 
 use Test::More;
 use lib qw(t/lib);
@@ -11,7 +11,7 @@ my $schema = DBICTest->init_schema();
 my $orig_debug = $schema->storage->debug;
 
 # test the abstract join => SQL generator
-my $sa = new DBIx::Class::SQLAHacks;
+my $sa = new DBIx::Class::SQLMaker;
 
 my @j = (
     { child => 'person' },
@@ -100,15 +100,6 @@ is_same_sql(
   'join 5 (SCALAR reference for ON statement) ok'
 );
 
-my @j6 = (
-    { child => 'person' },
-    [ { father => 'person' }, { 'father.person_id' => { '!=', '42' } }, ],
-    [ { mother => 'person' }, { 'mother.person_id' => 'child.mother_id' } ],
-);
-$match = qr/HASH reference arguments are not supported in JOINS/;
-eval { $sa->_recurse_from(@j6) };
-like( $@, $match, 'join 6 (HASH reference for ON statement dies) ok' );
-
 my $rs = $schema->resultset("CD")->search(
            { 'year' => 2001, 'artist.name' => 'Caterwauler McCrae' },
            { from => [ { 'me' => 'cd' },
@@ -176,7 +167,7 @@ is($rs->first->name, 'We Are Goth', 'Correct record returned');
         [ 4, 7 ],
         [ 4, 8 ],
     ]);
-    
+
     sub cd_count {
         return $schema->resultset("CD")->count;
     }
@@ -186,7 +177,7 @@ is($rs->first->name, 'We Are Goth', 'Correct record returned');
 
     is(cd_count(), 8, '8 rows in table cd');
     is(tk_count(), 7, '7 rows in table twokeys');
- 
+
     sub artist1 {
         return $schema->resultset("CD")->search(
             { 'artist.name' => 'Caterwauler McCrae' },

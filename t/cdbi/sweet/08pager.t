@@ -3,19 +3,17 @@ use warnings;
 
 use Test::More;
 
+use lib 't/lib';
+use DBICTest;
+
 BEGIN {
   eval "use DBIx::Class::CDBICompat;";
   if ($@) {
     plan (skip_all => 'Class::Trigger and DBIx::ContextualFetch required');
     next;
   }
-  eval "use DBD::SQLite";
-  plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 10);
+  plan tests => 9;
 }
-
-use lib 't/lib';
-
-use_ok('DBICTest');
 
 DBICTest::Schema::CD->load_components(qw/CDBICompat CDBICompat::Pager/);
 
@@ -28,7 +26,7 @@ my ( $pager, $it ) = DBICTest::CD->page(
     { order_by => 'title',
       rows => 3,
       page => 1 } );
-      
+
 cmp_ok( $pager->entries_on_this_page, '==', 3, "entries_on_this_page ok" );
 
 cmp_ok( $pager->next_page, '==', 2, "next_page ok" );
@@ -59,7 +57,7 @@ is( $it->next, undef, "disable_sql_paging next past end of page ok" );
 # based on a failing criteria submitted by waswas
 ( $pager, $it ) = DBICTest::CD->page(
     { title => [
-        -and => 
+        -and =>
             {
                 -like => '%bees'
             },

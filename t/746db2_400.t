@@ -1,9 +1,13 @@
 use strict;
-use warnings;  
+use warnings;
 
 use Test::More;
+use DBIx::Class::Optional::Dependencies ();
 use lib qw(t/lib);
 use DBICTest;
+
+plan skip_all => 'Test needs ' . DBIx::Class::Optional::Dependencies->req_missing_for ('test_rdbms_db2_400')
+  unless DBIx::Class::Optional::Dependencies->req_ok_for ('test_rdbms_db2_400');
 
 my ($dsn, $user, $pass) = @ENV{map { "DBICTEST_DB2_400_${_}" } qw/DSN USER PASS/};
 
@@ -72,7 +76,7 @@ my $test_type_info = {
     'charfield' => {
         'data_type' => 'CHAR',
         'is_nullable' => 1,
-        'size' => 10 
+        'size' => 10
     },
 };
 

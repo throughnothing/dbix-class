@@ -5,16 +5,17 @@ use base qw/DBIx::Class::Schema/;
 
 no warnings qw/qw/;
 
+__PACKAGE__->mk_group_accessors(simple => 'custom_attr');
+
 __PACKAGE__->load_classes(qw/
   Artist
   SequenceTest
   BindType
   Employee
   CD
-  FileColumn
   Genre
-  Link
   Bookmark
+  Link
   #dummy
   Track
   Tag
@@ -22,6 +23,7 @@ __PACKAGE__->load_classes(qw/
   Year1999CDs
   CustomSql
   Money
+  TimestampPrimaryKey
   /,
   { 'DBICTest::Schema' => [qw/
     LinerNotes
