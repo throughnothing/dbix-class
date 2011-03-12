@@ -25,6 +25,9 @@ Revision history for DBIx::Class
         - Automatically require the requested cursor class before use
           (RT#64795)
         - Work around a Firebird ODBC driver bug exposed by DBD::ODBC 1.29
+        - Fix stripping of table qualifiers in update/delete to match full
+          range of option specifiers (Patch generously provided by Grant
+          Street Group)
 
     * Misc
         - Only load Class::C3 and friends if necessary ($] < 5.010)

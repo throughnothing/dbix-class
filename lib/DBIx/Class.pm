@@ -284,6 +284,8 @@ claco: Christopher H. Laco
 
 clkao: CL Kao
 
+confound: Dieter Pearcey <hdp@cpan.org>
+
 da5id: David Jack Olrik <djo@cpan.org>
 
 debolaz: Anders Nor Berle <berle@cpan.org>
