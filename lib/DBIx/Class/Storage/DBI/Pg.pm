@@ -176,6 +176,7 @@ sub bind_attribute_by_data_type {
     {
       bytea => { pg_type => DBD::Pg::PG_BYTEA() },
       blob  => { pg_type => DBD::Pg::PG_BYTEA() },
+      timestamp  => { pg_type => DBD::Pg::PG_TIMESTAMP() },
     };
   };
 
