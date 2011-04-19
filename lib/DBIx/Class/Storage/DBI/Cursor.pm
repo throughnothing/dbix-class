@@ -177,9 +177,15 @@ sub _check_dbh_gen {
 }
 
 sub DESTROY {
-  # None of the reasons this would die matter if we're in DESTROY anyways
   if (my $sth = $_[0]->sth) {
-    try { $sth->finish } if $sth->FETCH('Active');
+    # cleanup only core DBI handles, for anything more esoteric we
+    # assume they know how to clean up ater themselves
+    if ($sth->isa('DBI::st') and $sth->FETCH('Active')) {
+
+      # None of the reasons this would die matter if we're in DESTROY anyways
+      local $@;
+      eval { $sth->finish }
+    }
   }
 }
 
