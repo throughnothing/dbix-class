@@ -3,14 +3,16 @@ package DBIx::Class::Storage::DBI::MSSQL;
 use strict;
 use warnings;
 
-use base qw/DBIx::Class::Storage::DBI::UniqueIdentifier/;
+use base qw/
+    DBIx::Class::Storage::DBI::IdentityInsert
+    DBIx::Class::Storage::DBI::UniqueIdentifier
+/;
 use mro 'c3';
 use Try::Tiny;
-use List::Util 'first';
 use namespace::clean;
 
 __PACKAGE__->mk_group_accessors(simple => qw/
-  _identity _identity_method _pre_insert_sql _post_insert_sql
+  _identity _identity_method _is_bulk_insert
 /);
 
 __PACKAGE__->sql_maker_class('DBIx::Class::SQLMaker::MSSQL');
@@ -21,52 +23,16 @@ __PACKAGE__->datetime_parser_type (
   'DBIx::Class::Storage::DBI::MSSQL::DateTime::Format'
 );
 
-
 __PACKAGE__->new_guid('NEWID()');
 
-sub _set_identity_insert {
-  my ($self, $table) = @_;
-
-  my $stmt = 'SET IDENTITY_INSERT %s %s';
-  $table   = $self->sql_maker->_quote($table);
-
-  $self->_pre_insert_sql (sprintf $stmt, $table, 'ON');
-  $self->_post_insert_sql(sprintf $stmt, $table, 'OFF');
-}
+__PACKAGE__->use_identity_update(0);
 
 sub insert_bulk {
   my $self = shift;
-  my ($source, $cols, $data) = @_;
 
-  my $is_identity_insert =
-    (first { $_->{is_auto_increment} } values %{ $source->columns_info($cols) } )
-      ? 1
-      : 0
-  ;
+  local $self->{_is_bulk_insert} = 1;
 
-  if ($is_identity_insert) {
-     $self->_set_identity_insert ($source->name);
-  }
-
-  $self->next::method(@_);
-}
-
-sub insert {
-  my $self = shift;
-  my ($source, $to_insert) = @_;
-
-  my $supplied_col_info = $self->_resolve_column_info($source, [keys %$to_insert] );
-
-  my $is_identity_insert =
-    (first { $_->{is_auto_increment} } values %$supplied_col_info) ? 1 : 0;
-
-  if ($is_identity_insert) {
-     $self->_set_identity_insert ($source->name);
-  }
-
-  my $updated_cols = $self->next::method(@_);
-
-  return $updated_cols;
+  return $self->next::method(@_);
 }
 
 sub _prep_for_execute {
@@ -95,15 +61,9 @@ sub _prep_for_execute {
   my ($sql, $bind) = $self->next::method (@_);
 
   if ($op eq 'insert') {
-    if (my $prepend = $self->_pre_insert_sql) {
-      $sql = "${prepend}\n${sql}";
-      $self->_pre_insert_sql(undef);
+    if ((not $self->_is_bulk_insert) && (not $self->is_identity_insert)) {
+      $sql .= "\nSELECT SCOPE_IDENTITY()";
     }
-    if (my $append  = $self->_post_insert_sql) {
-      $sql = "${sql}\n${append}";
-      $self->_post_insert_sql(undef);
-    }
-    $sql .= "\nSELECT SCOPE_IDENTITY()";
   }
 
   return ($sql, $bind);
@@ -115,8 +75,8 @@ sub _execute {
 
   my ($rv, $sth, @bind) = $self->next::method(@_);
 
-  if ($op eq 'insert') {
-
+  if ($op eq 'insert' && (not $self->is_identity_insert)
+      && (not $self->_is_bulk_insert)) {
     # this should bring back the result of SELECT SCOPE_IDENTITY() we tacked
     # on in _prep_for_execute above
     my ($identity) = try { $sth->fetchrow_array };

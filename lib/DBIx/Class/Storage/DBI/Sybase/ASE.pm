@@ -6,6 +6,7 @@ use warnings;
 use base qw/
     DBIx::Class::Storage::DBI::Sybase
     DBIx::Class::Storage::DBI::AutoCast
+    DBIx::Class::Storage::DBI::IdentityInsert
 /;
 use mro 'c3';
 use DBIx::Class::Carp;
@@ -74,7 +75,7 @@ sub _rebless {
   if ($self->using_freetds) {
     carp_once <<'EOF' unless $ENV{DBIC_SYBASE_FREETDS_NOWARN};
 
-You are using FreeTDS with Sybase.
+You are using FreeTDS with Sybase ASE.
 
 We will do our best to support this configuration, but please consider this
 support experimental.
@@ -263,15 +264,6 @@ sub _prep_for_execute {
       keys %$columns_info
   ;
 
-  if (($op eq 'insert' && $bound_identity_col) ||
-      ($op eq 'update' && exists $args->[0]{$identity_col})) {
-    $sql = join ("\n",
-      $self->_set_table_identity_sql($op => $table, 'on'),
-      $sql,
-      $self->_set_table_identity_sql($op => $table, 'off'),
-    );
-  }
-
   if ($op eq 'insert' && (not $bound_identity_col) && $identity_col &&
       (not $self->{insert_bulk})) {
     $sql =
@@ -280,13 +272,6 @@ sub _prep_for_execute {
   }
 
   return ($sql, $bind);
-}
-
-sub _set_table_identity_sql {
-  my ($self, $op, $table, $on_off) = @_;
-
-  return sprintf 'SET IDENTITY_%s %s %s',
-    uc($op), $self->sql_maker->_quote($table), uc($on_off);
 }
 
 # Stolen from SQLT, with some modifications. This is a makeshift
