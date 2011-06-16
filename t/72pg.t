@@ -380,7 +380,10 @@ lives_ok { $cds->update({ year => '2010' }) } 'Update on prefetched rs';
 
           $timed_out = 0;
           eval {
-              my $h = set_sig_handler( 'ALRM', sub { die "DBICTestTimeout" } );
+              my $h = set_sig_handler( 'ALRM', sub {
+                alarm(2); # timeout ROLLBACK
+                die "DBICTestTimeout";
+              } );
               alarm(2);
               $schema2->txn_do(sub {
                 $artist2 = $schema2->resultset('Artist')->find(1);
