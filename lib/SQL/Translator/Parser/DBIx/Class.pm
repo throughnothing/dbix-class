@@ -104,10 +104,17 @@ sub parse {
                                        );
         foreach my $col ($source->columns)
         {
+            my $col_name = $col;
+            if ( $args->{use_dbic_shortener} ){
+                require DBIx::Class::SQLMaker;
+                my $sqlm = DBIx::Class::SQLMaker->new();
+                $col_name = $sqlm->_shorten_identifier($col,[],$args->{use_dbic_shortener});
+            };
+
             # assuming column_info in dbic is the same as DBI (?)
             # data_type is a number, column_type is text?
             my %colinfo = (
-              name => $col,
+              name => $col_name,
               size => 0,
               is_auto_increment => 0,
               is_foreign_key => 0,

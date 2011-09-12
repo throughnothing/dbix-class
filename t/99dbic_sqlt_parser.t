@@ -197,6 +197,39 @@ lives_ok (sub {
   }, 'partial schema tests successful');
 }
 
+{
+  {
+    package # hide from PAUSE
+      DBICTest::Schema::LongColumnNames;
+
+    use base qw/DBICTest::BaseResult/;
+
+    __PACKAGE__->table('long_column_names');
+
+    __PACKAGE__->add_columns(
+      #         1         2         3         4
+      #1234567890123456789012345678901234567890
+      'column_with' => { data_type => 'integer'},
+      'column_with_20_chara' => { data_type => 'integer'},
+      'column_with_30_charactertsXXX' => { data_type => 'integer'},
+    );
+    1;
+  }
+
+  my $schema_long_column_names = $schema->clone;
+  $schema_long_column_names->register_class('LongColumnNames', 'DBICTest::Schema::LongColumnNames');
+
+  my $sqlt_schema = create_schema({
+    schema => $schema_long_column_names,
+    args => { parser_args => { use_dbic_shortener => 20 } }
+  });
+  my $table = $sqlt_schema->get_table('long_column_names');
+  my @field_names = $table->field_names;
+  is($field_names[0], 'column_with' ,          "Check dbic shortener column_with");
+  is($field_names[1], 'column_with_20_chara' , "Check dbic shortener column_with_20_chara");
+  is($field_names[2], 'ClmnWth30_6H7V9X2DCV' , "Check dbic shortener column_with_30_charactertsXXX");
+}
+
 done_testing;
 
 sub create_schema {
