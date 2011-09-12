@@ -503,10 +503,12 @@ sub _join_condition {
 # optionally keywords can be passed as an arrayref to generate useful
 # identifiers
 sub _shorten_identifier {
-  my ($self, $to_shorten, $keywords) = @_;
+  my ($self, $to_shorten, $keywords, $max_len) = @_;
 
   # 30 characters is the identifier limit for Oracle
-  my $max_len = 30;
+  $max_len ||= 30;
+  $self->throw_exception("Max column len is < 18, this isn't supported.")
+    if $max_len < 18;
   # we want at least 10 characters of the base36 md5
   my $min_entropy = 10;
 
