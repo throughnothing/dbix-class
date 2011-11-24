@@ -19,6 +19,7 @@ Revision history for DBIx::Class
           time of $guard instantiation
         - Fix the join/prefetch resolver when dealing with ''/undef/()
           relation specifications
+        - Fix exception propagation from with_deferred_fk_checks
 
     * Misc
         - No longer depend on Variable::Magic now that a pure-perl
