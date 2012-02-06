@@ -67,13 +67,12 @@ elements). However each line is still separate by double-space (C<\n\n>) as
 required by the POD specification.
 
 The flags are simple key/value pairs with C<:> separating each key from its
-value. Both the value and the separator C<:> are optional. If a flag value
-is not supplied it defaults to C<0E0> zero-but-true. Each flag has a short
-name in addition to its canonical one. Flags supplied more than once have
-their values aggregated in an arrayref (e.g. C<Depends>). Moreover some
-flags always aggregate their values in an arrayref, even if there is only
-one value supplied. See the known flag list on top of F<maint/dbic_todo> for
-details.
+value. Both the value and the separator C<:> are optional. If a flag value is
+not supplied it's value will be an empty list. Each flag has a short name in
+addition to its canonical one. All flags supplied have their values aggregated
+in an arrayref. Flags always aggregate their values in an arrayref, even if
+there is only one value supplied. See the known flag list on top of
+F<maint/dbic_todo> for details.
 
 To put it in perl-speek flags for each TODO item are parsed by:
 
@@ -240,7 +239,7 @@ Moose is slow. *Really* slow for CLI. We can do better.
 
 =over
 
-REG:0.08115
+RG:0.08115
 
 BL:0.08200
 
