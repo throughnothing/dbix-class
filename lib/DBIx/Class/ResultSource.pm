@@ -1827,6 +1827,51 @@ sub _resolve_prefetch {
   }
 }
 
+=head2 ident_cond_for_cols
+
+=over 4
+
+=item Arguments: \%row
+
+=item Return Value: \%condition||undef
+
+=back
+
+Attempts to identify %row (as, for example, made by
+L<DBIx::Class::Row/get_columns> or L<DBIx::Class::ResultClass::HashRefInflator>)
+by unique constraints and extract them into the
+%condition that can be used for a select. Returns undef if the %row is
+ambiguous, or there are no unique constraints.
+
+Returns the smallest possible identifying condition, giving preference to the
+primary key.
+
+=cut
+
+sub ident_cond_for_cols {
+  my ($self, $row) = @_;
+
+  my %u = $self->unique_constraints
+    or return undef;
+
+  my @k = grep $_ ne 'primary',
+    map $_->[0],
+    sort { @{$a->[1]} <=> @{$b->[1]} }
+    map [ $_, $u{$_} ], keys %u;
+
+  unshift @k, 'primary' if exists $u{primary};
+
+  foreach my $k (@k) {
+    my $cols = $u{$k};
+
+    if (@$cols == grep defined $row->{$_}, @$cols) {
+      return +{ map +($_, $row->{$_}), @$cols };
+    }
+  }
+
+  return undef;
+} 
+
 =head2 related_source
 
 =over 4

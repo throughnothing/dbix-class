@@ -14,6 +14,14 @@ Revision history for DBIx::Class
         - Fix corner case of forked children disconnecting the parents DBI
           handle
         - Fix leakage of $schema on in-memory new_related() calls
+        - Loosen primary key requirement restriction on TEXT/IMAGE operations
+          for Sybase ASE to unique constraints
+        - Support TEXT/IMAGE UPDATE operations with TEXT queries in WHERE for
+          Sybase ASE
+        - Support BLOB/CLOB operations for Oracle with quoting enabled (by
+          switching to ora_auto_lob => 0)
+        - Support BLOB/CLOB operations for Oracle on DBD::Oracle version 1.23
+        - Support insert_bulk with BLOBs/CLOBs for Oracle
 
     * Misc
         - Codebase is now trailing-whitespace-free
