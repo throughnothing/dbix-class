@@ -28,9 +28,7 @@ BEGIN {
 my $expected_core_modules;
 
 BEGIN {
-  $expected_core_modules = { map { $_ => 1 } 
-    'Data::Dumper',  # FIXME temporary!!!
-    qw/
+  $expected_core_modules = { map { $_ => 1 } qw/
     strict
     warnings
 

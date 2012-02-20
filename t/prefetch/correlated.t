@@ -46,7 +46,6 @@ is_same_sql_bind(
       LEFT JOIN track tracks
         ON tracks.cd = me.cdid
     WHERE me.artist != ?
-    ORDER BY tracks.cd
   )',
   [
 
@@ -118,7 +117,6 @@ is_same_sql_bind(
       LEFT JOIN track tracks
         ON tracks.cd = me.cdid
     WHERE me.artist != ?
-    ORDER BY tracks.cd
   )',
   [
 
