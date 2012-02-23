@@ -987,10 +987,13 @@ sub sql_maker {
       $name_sep = (delete $opts{name_sep}) || $self->sql_name_sep;
     }
 
+    my $weak_self = $self;
+    weaken($weak_self);
     $self->_sql_maker($sql_maker_class->new(
       bindtype=>'columns',
       array_datatypes => 1,
       limit_dialect => $dialect,
+      storage => $weak_self,
       ($quote_char ? (quote_char => $quote_char) : ()),
       name_sep => ($name_sep || '.'),
       %opts,

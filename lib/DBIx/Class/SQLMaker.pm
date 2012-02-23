@@ -47,7 +47,7 @@ use DBIx::Class::Carp;
 use DBIx::Class::Exception;
 use namespace::clean;
 
-__PACKAGE__->mk_group_accessors (simple => qw/quote_char name_sep limit_dialect/);
+__PACKAGE__->mk_group_accessors (simple => qw/quote_char name_sep limit_dialect storage/);
 
 # for when I need a normalized l/r pair
 sub _quote_chars {
