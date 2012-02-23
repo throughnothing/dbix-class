@@ -9,6 +9,7 @@ __PACKAGE__->mk_group_accessors(simple => 'custom_attr');
 
 __PACKAGE__->load_classes(qw/
   Artist
+  BadNames1
   SequenceTest
   BindType
   Employee

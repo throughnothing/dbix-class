@@ -95,10 +95,17 @@ sub __max_int () { 0x7FFFFFFF };
 
 # poor man's de-qualifier
 sub _quote {
-  $_[0]->next::method( ( $_[0]{_dequalify_idents} and ! ref $_[1] )
-    ? $_[1] =~ / ([^\.]+) $ /x
-    : $_[1]
-  );
+  my $col = ( $_[0]{_dequalify_idents} and ! ref $_[1] )
+       ? $_[1] =~ / ([^\.]+) $ /x
+       : $_[1];
+
+  my $column_info = $_[0]->storage->_resolve_column_info($_[0]->{FROM}, [$col]);
+  if (my $alias = $column_info->{$col}{sql_alias}) {
+     $col =~ s/[^\.]+$/$alias/;
+  }
+
+
+  $_[0]->next::method( $col );
 }
 
 sub new {
@@ -171,6 +178,7 @@ sub select {
   my ($self, $table, $fields, $where, $rs_attrs, $limit, $offset) = @_;
 
 
+  local $self->{FROM} = $table;
   $fields = $self->_recurse_fields($fields);
 
   if (defined $offset) {
