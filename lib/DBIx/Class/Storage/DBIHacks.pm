@@ -516,7 +516,11 @@ sub _resolve_column_info {
       },
       -result_source => $rsrc,
       -source_alias => $source_alias,
+      -fq_colname => $col eq $colname ? "$source_alias.$col" : $col,
+      -colname => $colname,
     };
+
+    $return{"$source_alias.$colname"} = $return{$col} if $col eq $colname;
   }
 
   return \%return;
@@ -674,6 +678,24 @@ sub _extract_order_criteria {
     local $sql_maker->{quote_char};
     return $parser->($sql_maker, $order_by);
   }
+}
+
+sub _order_by_is_stable {
+  my ($self, $ident, $order_cols) = @_;
+
+  my $colinfo = $self->_resolve_column_info($ident, $order_cols);
+
+  return undef unless keys %$colinfo;
+
+  my $cols_per_src;
+  $cols_per_src->{$_->{-source_alias}}{$_->{-colname}} = $_ for values %$colinfo;
+
+  for (values %$cols_per_src) {
+    my $src = (values %$_)[0]{-result_source};
+    return 1 if $src->_identifying_column_set($_);
+  }
+
+  return undef;
 }
 
 1;

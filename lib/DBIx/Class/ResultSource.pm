@@ -1720,6 +1720,31 @@ sub _resolve_condition {
   }
 }
 
+# optionally takes either an arrayref of column names, or a hashref of already
+# retrieved colinfos
+# returns a true-valued hashref of column names of the shortest unique
+# constraint (matching some of the input if any), giving preference to the PK
+sub _identifying_column_set {
+  my ($self, $cols) = @_;
+
+  my %unique = $self->unique_constraints;
+  my $colinfos = ref $cols eq 'HASH' ? $cols : $self->columns_info($cols||());
+
+  # always prefer the PK first, and then shortest constraints first
+  USET:
+  for my $set (delete $unique{primary}, sort { @$a <=> @$b } (values %unique) ) {
+    next unless $set && @$set;
+
+    for (@$set) {
+      next USET unless ($colinfos->{$_} && !$colinfos->{$_}{is_nullable} );
+    }
+
+    return { map { $_ => 1 } @$set };
+  }
+
+  return undef;
+}
+
 =head2 related_source
 
 =over 4
