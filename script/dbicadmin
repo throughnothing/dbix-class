@@ -49,7 +49,8 @@ my ($opts, $usage) = describe_options(
     ['schema-class:s' => 'The class of the schema to load', { required => 1 } ],
     ['resultset|resultset-class|class:s' => 'The resultset to operate on for data manipulation' ],
     ['config-stanza:s' => 'Where in the config to find the connection_info, supply in form MyApp::Model::DB',],
-    ['config:s' => 'Supply the config file for parsing by Config::Any', { depends => 'config_stanza'} ],
+    ['config:s' => 'Supply the config file for parsing by Config::Any' ],
+    ['config-file:s' => 'Supply the config file for parsing by Config::Any', { depends => 'config_stanza'} ],
     ['connect-info:s%' => 'Supply the connect info as additional options ie -I dsn=<dsn> user=<user> password=<pass> '],
     ['connect:s' => 'Supply the connect info as a json string' ],
     ['sql-dir:s' => 'The directory where sql diffs will be created'],
@@ -66,7 +67,10 @@ my ($opts, $usage) = describe_options(
   )
 );
 
-die "please only use one of --config or --connect-info\n" if ($opts->{config} and $opts->{connect_info});
+my($p, $q, $r, $s) = @{$opts}{qw(config config_file connect_info connect)};
+warn $p, $q, $r;
+die "please only use one of --config, --config-file, --connect or --connect-info\n"
+  if !(($p and $q and $r) xor $p xor $q xor $r); # see http://bit.ly/yiazqJ
 
 if($opts->{selfinject_pod}) {
 
