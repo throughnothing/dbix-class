@@ -987,17 +987,18 @@ sub sql_maker {
       $name_sep = (delete $opts{name_sep}) || $self->sql_name_sep;
     }
 
-    my $weak_self = $self;
-    weaken($weak_self);
-    $self->_sql_maker($sql_maker_class->new(
-      bindtype=>'columns',
+    my $self_to_weaken = $self;
+    my $sql_maker_args = {
+      bindtype        => 'columns',
       array_datatypes => 1,
-      limit_dialect => $dialect,
-      storage => $weak_self,
+      limit_dialect   => $dialect,
+      name_sep        => ($name_sep || '.'),
       ($quote_char ? (quote_char => $quote_char) : ()),
-      name_sep => ($name_sep || '.'),
+      storage         => $self_to_weaken,
       %opts,
-    ));
+    };
+    weaken($sql_maker_args->{storage});
+    $self->_sql_maker($sql_maker_class->new($sql_maker_args));
   }
   return $self->_sql_maker;
 }
