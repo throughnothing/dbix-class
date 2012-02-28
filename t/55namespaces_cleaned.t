@@ -67,7 +67,7 @@ my $skip_idx = { map { $_ => 1 } (
 
   # not sure how to handle type libraries
   'DBIx::Class::Storage::DBI::Replicated::Types',
-  'DBIx::Class::Admin::Types',
+  'DBIx::Class::Admin',
 
   # G::L::D is unclean, but we never inherit from it
   'DBIx::Class::Admin::Descriptive',

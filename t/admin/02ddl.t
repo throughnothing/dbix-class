@@ -94,10 +94,12 @@ is($schema->get_db_version, $DBICVersion::Schema::VERSION, 'Schema and db versio
 
 clean_dir($sql_dir);
 
+no warnings 'redefine';
+local *DBIx::Class::Admin::_confirm = sub { 1 };
+
 my $admin = DBIx::Class::Admin->new(
   schema_class  => 'DBICVersion::Schema',
   sql_dir      => $sql_dir,
-  _confirm    => 1,
   connect_info  => \@connect_info,
 );
 

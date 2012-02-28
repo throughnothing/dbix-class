@@ -23,6 +23,9 @@ use_ok 'DBIx::Class::Admin';
     sqlite_use_file => 1,
   );
 
+  no warnings 'redefine';
+  local *DBIx::Class::Admin::_confirm = sub { 1 };
+
   my $admin = DBIx::Class::Admin->new(
     schema_class=> "DBICTest::Schema",
     connect_info => $schema->storage->connect_info(),

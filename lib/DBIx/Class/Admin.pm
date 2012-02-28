@@ -7,11 +7,12 @@ BEGIN {
     unless DBIx::Class::Optional::Dependencies->req_ok_for ('admin');
 }
 
-use Moose;
-use MooseX::Types::Moose qw/Int Str Any Bool/;
-use DBIx::Class::Admin::Types qw/DBICConnectInfo DBICHashRef/;
-use MooseX::Types::JSON qw(JSON);
-use MooseX::Types::Path::Class qw(Dir File);
+use Moo;
+#use Moose;
+#use MooseX::Types::Moose qw/Int Str Any Bool/;
+#use DBIx::Class::Admin::Types qw/DBICConnectInfo DBICHashRef/;
+#use MooseX::Types::JSON qw(JSON);
+#use MooseX::Types::Path::Class qw(Dir File);
 use Try::Tiny;
 use JSON::Any qw(DWIW XS JSON);
 use namespace::autoclean;
@@ -68,7 +69,7 @@ the class of the schema to load
 
 has 'schema_class' => (
   is  => 'ro',
-  isa => Str,
+#  isa => Str,
 );
 
 
@@ -79,9 +80,10 @@ A pre-connected schema object can be provided for manipulation
 =cut
 
 has 'schema' => (
-  is          => 'ro',
-  isa         => 'DBIx::Class::Schema',
-  lazy_build  => 1,
+  is      => 'ro',
+  isa     => 'DBIx::Class::Schema',
+  lazy    => 1,
+  default => sub { shift->_build_schema }
 );
 
 sub _build_schema {
@@ -101,7 +103,7 @@ a resultset from the schema to operate on
 
 has 'resultset' => (
   is  => 'rw',
-  isa => Str,
+#  isa => Str,
 );
 
 
@@ -111,12 +113,17 @@ a hash ref or json string to be used for identifying data to manipulate
 
 =cut
 
+my $to_json = sub {
+    my($val) = @_;
+    try { JSON::Any->jsonToObj($val) }
+      catch { $val };
+};
+
 has 'where' => (
   is      => 'rw',
-  isa     => DBICHashRef,
-  coerce  => 1,
+#  isa     => DBICHashRef,
+  coerce  => $to_json
 );
-
 
 =head2 set
 
@@ -126,8 +133,8 @@ a hash ref or json string to be used for inserting or updating data
 
 has 'set' => (
   is      => 'rw',
-  isa     => DBICHashRef,
-  coerce  => 1,
+#  isa     => DBICHashRef,
+  coerce  => $to_json
 );
 
 
@@ -139,8 +146,8 @@ a hash ref or json string to be used for passing additional info to the ->search
 
 has 'attrs' => (
   is      => 'rw',
-  isa     => DBICHashRef,
-  coerce  => 1,
+#  isa     => DBICHashRef,
+  coerce  => $to_json
 );
 
 
@@ -151,10 +158,11 @@ connect_info the arguments to provide to the connect call of the schema_class
 =cut
 
 has 'connect_info' => (
-  is          => 'ro',
-  isa         => DBICConnectInfo,
-  lazy_build  => 1,
-  coerce      => 1,
+  is      => 'ro',
+#  isa    => DBICConnectInfo,
+  lazy    => 1,
+  default => sub { shift->_build_connect_info },
+  coerce => $to_json
 );
 
 sub _build_connect_info {
@@ -173,8 +181,8 @@ The config file should be in a format readable by Config::General
 
 has config_file => (
   is      => 'ro',
-  isa     => File,
-  coerce  => 1,
+#  isa     => File,
+#  coerce  => 1,
 );
 
 
@@ -187,7 +195,7 @@ designed for use with catalyst config files
 
 has 'config_stanza' => (
   is  => 'ro',
-  isa => Str,
+#  isa => Str,
 );
 
 
@@ -199,9 +207,10 @@ config_stanza will still be required.
 =cut
 
 has config => (
-  is          => 'ro',
-  isa         => DBICHashRef,
-  lazy_build  => 1,
+  is      => 'ro',
+#  isa         => DBICHashRef,
+  lazy    => 1,
+  default => sub { shift->_build_config }
 );
 
 sub _build_config {
@@ -226,8 +235,8 @@ The location where sql ddl files should be created or found for an upgrade.
 
 has 'sql_dir' => (
   is      => 'ro',
-  isa     => Dir,
-  coerce  => 1,
+#  isa     => Dir,
+#  coerce  => 1,
 );
 
 
@@ -239,7 +248,7 @@ The type of sql dialect to use for creating sql files from schema
 
 has 'sql_type' => (
   is     => 'ro',
-  isa    => Str,
+#  isa    => Str,
 );
 
 =head2 version
@@ -250,7 +259,7 @@ Used for install, the version which will be 'installed' in the schema
 
 has version => (
   is  => 'rw',
-  isa => Str,
+#  isa => Str,
 );
 
 
@@ -262,7 +271,7 @@ Previous version of the schema to create an upgrade diff for, the full sql for t
 
 has preversion => (
   is  => 'rw',
-  isa => Str,
+#  isa => Str,
 );
 
 
@@ -274,7 +283,7 @@ Try and force certain operations.
 
 has force => (
   is  => 'rw',
-  isa => Bool,
+#  isa => Bool,
 );
 
 
@@ -286,12 +295,12 @@ Be less verbose about actions
 
 has quiet => (
   is  => 'rw',
-  isa => Bool,
+#  isa => Bool,
 );
 
 has '_confirm' => (
   is  => 'bare',
-  isa => Bool,
+#  isa => Bool,
 );
 
 
@@ -303,7 +312,7 @@ Toggle DBIx::Class debug output
 
 has trace => (
     is => 'rw',
-    isa => Bool,
+#    isa => Bool,
     trigger => \&_trigger_trace,
 );
 
@@ -558,9 +567,6 @@ sub select {
 
 sub _confirm {
   my ($self) = @_;
-
-  # mainly here for testing
-  return 1 if ($self->meta->get_attribute('_confirm')->get_value($self));
 
   print "Are you sure you want to do this? (type YES to confirm) \n";
   my $response = <STDIN>;
