@@ -20,6 +20,8 @@ if (@ARGV) {
   warn "\nIgnoring unrecognized option(s): @ARGV\n\n";
 }
 
+exit 0 unless $args->{check_blockers};
+
 my %flags;
 my $todo_file = 'lib/DBIx/Class/Manual/Dev/TODO.pod';
 my $pod = do { local(@ARGV, $/) = ("$FindBin::Bin/../$todo_file"); <> };
@@ -43,6 +45,6 @@ while($pod =~ /^=head\d+\s+([^\n]+?)\n\n^=over(.+?)^=back/xmsg) {
     }
 }
 
-die Data::Dump::dump(\%flags) if keys %flags;
+exit 1 if keys %flags;
 
 exit 0;
