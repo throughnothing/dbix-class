@@ -90,7 +90,6 @@ sub _build_schema {
   require Class::MOP;
   Class::MOP::load_class($self->schema_class);
   $self->connect_info->[3]{ignore_version} = 1;
-  warn Data::Dump::dump($self->connect_info);
   return $self->schema_class->connect(@{$self->connect_info});
 }
 
@@ -580,8 +579,7 @@ sub _find_stanza {
       die ("Could not find $stanza in config, $path does not seem to exist.\n");
     }
   }
-  use Data::Dump;
-  warn Data::Dump::dump($cfg);
+  $cfg = $cfg->{connect_info} if exists $cfg->{connect_info};
   return $cfg;
 }
 

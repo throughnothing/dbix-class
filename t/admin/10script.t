@@ -17,20 +17,19 @@ BEGIN {
 
 my @json_backends = qw/XS JSON DWIW/;
 my $tests_per_run = 5;
-plan tests => ($tests_per_run * @json_backends) + 1;
+#plan tests => ($tests_per_run * @json_backends) + 1;
 
 # test the script is setting @INC properly
-test_exec (qw| -It/lib/testinclude --schema=DBICTestAdminInc --insert --connect=[] |);
+test_exec (qw|-It/lib/testinclude --schema=DBICTestAdminInc --connect=[] --insert|);
 cmp_ok ( $? >> 8, '==', 70, 'Correct exit code from connecting a custom INC schema' );
 
 # test that config works properly
-test_exec( '-It/lib/testinclude',
-  q|--config='{ "model": { "DB": { "schema_class": "DBICTestConfig"}} }'| );
-cmp_ok( $? >> 8, '==', 71, 'Correct schema loaded via config' )
+test_exec(qw|-It/lib/testinclude --schema=DBICTestConfig|, q|--connect=["klaatu", "barada", "nikto"]|, q|--create| );
+cmp_ok( $? >> 8, '==', 71, 'Correct schema loaded via config' );
 
 # test that config-file works properly
-test_exec(qw| -It/lib/testinclude --config-file=t/etc/testconfig.conf|);
-cmp_ok ($? >> 8, '==', 72, 'Correct schema loaded via testconfig')
+test_exec(qw|-It/lib/testinclude --schema=DBICTestConfig --config=t/admin/etc/testconfig.conf --config-stanza=Model::Gort --deploy|);
+cmp_ok ($? >> 8, '==', 71, 'Correct schema loaded via testconfig');
 
 for my $js (@json_backends) {
 
@@ -43,6 +42,8 @@ for my $js (@json_backends) {
         diag $@ if $@;
     }
 }
+
+done_testing();
 
 sub test_dbicadmin {
     my $schema = DBICTest->init_schema( sqlite_use_file => 1 );  # reinit a fresh db for every run
