@@ -19,10 +19,18 @@ my @json_backends = qw/XS JSON DWIW/;
 my $tests_per_run = 5;
 plan tests => ($tests_per_run * @json_backends) + 1;
 
-
 # test the script is setting @INC properly
 test_exec (qw| -It/lib/testinclude --schema=DBICTestAdminInc --insert --connect=[] |);
 cmp_ok ( $? >> 8, '==', 70, 'Correct exit code from connecting a custom INC schema' );
+
+# test that config works properly
+test_exec( '-It/lib/testinclude',
+  q|--config='{ "model": { "DB": { "schema_class": "DBICTestConfig"}} }'| );
+cmp_ok( $? >> 8, '==', 71, 'Correct schema loaded via config' )
+
+# test that config-file works properly
+test_exec(qw| -It/lib/testinclude --config-file=t/etc/testconfig.conf|);
+cmp_ok ($? >> 8, '==', 72, 'Correct schema loaded via testconfig')
 
 for my $js (@json_backends) {
 
